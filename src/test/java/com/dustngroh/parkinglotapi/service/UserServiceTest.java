@@ -6,6 +6,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
 
@@ -20,11 +21,13 @@ public class UserServiceTest {
     private UserService userService;
 
     private UserRepository userRepository;
+    private PasswordEncoder passwordEncoder;
 
     @BeforeEach
     public void setUp() {
         userRepository = mock(UserRepository.class);
-        userService = new UserService(userRepository);
+        passwordEncoder = mock(PasswordEncoder.class);
+        userService = new UserService(userRepository, passwordEncoder);
     }
 
     @Test

@@ -21,6 +21,9 @@ public class User {
     @Column(nullable = false)
     private String role; // e.g., 'USER', 'STAFF', 'ADMIN'
 
+    @Column(nullable = false)
+    private String plateNumber;
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Reservation> reservations;
 
@@ -59,6 +62,14 @@ public class User {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public String getPlateNumber() {
+        return plateNumber;
+    }
+
+    public void setPlateNumber(String plateNumber) {
+        this.plateNumber = plateNumber;
     }
 
     public List<Reservation> getReservations() {
