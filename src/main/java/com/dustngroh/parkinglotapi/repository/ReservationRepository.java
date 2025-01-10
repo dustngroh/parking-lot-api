@@ -6,10 +6,11 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
     List<Reservation> findByUser_Username(String username);
     List<Reservation> findByParkingLot_Name(String parkingLotName);
-    List<Reservation> findByStartTimeAfter(LocalDateTime startTime);
+    Optional<Reservation> findByUser_UsernameAndParkingLot_Name(String username, String parkingLotName);
 }

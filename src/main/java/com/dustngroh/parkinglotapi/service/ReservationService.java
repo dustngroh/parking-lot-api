@@ -16,6 +16,10 @@ public class ReservationService {
         this.reservationRepository = reservationRepository;
     }
 
+    public List<Reservation> getAllReservations() {
+        return reservationRepository.findAll();
+    }
+
     public List<Reservation> getReservationsByUser(String username) {
         return reservationRepository.findByUser_Username(username);
     }
@@ -24,8 +28,8 @@ public class ReservationService {
         return reservationRepository.findByParkingLot_Name(parkingLotName);
     }
 
-    public List<Reservation> getUpcomingReservations(LocalDateTime startTime) {
-        return reservationRepository.findByStartTimeAfter(startTime);
+    public boolean hasReservation(String username, String parkingLotName) {
+        return reservationRepository.findByUser_UsernameAndParkingLot_Name(username, parkingLotName).isPresent();
     }
 
     public Reservation saveReservation(Reservation reservation) {
