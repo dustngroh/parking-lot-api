@@ -56,6 +56,12 @@ public class UserService {
         return userRepository.save(user);
     }
 
+    public User authenticate(String username, String password) {
+        return userRepository.findByUsername(username)
+                .filter(user -> passwordEncoder.matches(password, user.getPassword()))
+                .orElseThrow(() -> new UserNotFoundException("Invalid username or password"));
+    }
+
     public User updateUser(Long userId, User updatedUser) {
         return userRepository.findById(userId)
                 .map(user -> {

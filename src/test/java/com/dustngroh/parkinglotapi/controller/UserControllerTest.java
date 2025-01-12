@@ -3,6 +3,7 @@ package com.dustngroh.parkinglotapi.controller;
 import com.dustngroh.parkinglotapi.dto.UserRegistrationDTO;
 import com.dustngroh.parkinglotapi.entity.User;
 import com.dustngroh.parkinglotapi.exception.UserAlreadyExistsException;
+import com.dustngroh.parkinglotapi.exception.UserNotFoundException;
 import com.dustngroh.parkinglotapi.service.UserService;
 import com.dustngroh.parkinglotapi.dto.UserMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -17,6 +18,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+
+import java.util.Map;
 
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -49,12 +52,16 @@ public class UserControllerTest {
         validUserDTO = new UserRegistrationDTO();
         validUserDTO.setUsername("john_doe");
         validUserDTO.setPassword("securepassword123");
+        validUserDTO.setFirstName("John");
+        validUserDTO.setLastName("Doe");
         validUserDTO.setPlateNumber("ABC123");
         validUserDTO.setRole("USER");
 
         validUser = new User();
         validUser.setUsername("john_doe");
         validUser.setPassword("securepassword123");
+        validUser.setFirstName("John");
+        validUser.setLastName("Doe");
         validUser.setPlateNumber("ABC123");
         validUser.setRole("USER");
     }
@@ -90,6 +97,70 @@ public class UserControllerTest {
 
         verify(userMapper, times(1)).toEntity(validUserDTO);
         verify(userService, times(1)).registerUser(validUser);
+    }
+
+    @Test
+    public void testLogin_Success() throws Exception {
+        String username = "john_doe";
+        String password = "securepassword123";
+
+        User validUser = new User();
+        validUser.setUsername(username);
+        validUser.setPassword(password); // Assume this is hashed in the actual implementation
+
+        // Mock the service to return the user for correct credentials
+        when(userService.authenticate(username, password)).thenReturn(validUser);
+
+        // Create the request payload
+        String loginRequest = objectMapper.writeValueAsString(Map.of(
+                "username", username,
+                "password", password
+        ));
+
+        mockMvc.perform(post("/api/users/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(loginRequest))
+                .andExpect(status().isOk())
+                .andExpect(content().string("Login successful. Token: sample-jwt-token"));
+
+        verify(userService, times(1)).authenticate(username, password);
+    }
+
+    @Test
+    public void testLogin_InvalidCredentials() throws Exception {
+        String username = "john_doe";
+        String password = "wrongpassword";
+
+        // Mock the service to throw an exception for invalid credentials
+        when(userService.authenticate(username, password))
+                .thenThrow(new UserNotFoundException("Invalid username or password"));
+
+        // Create the request payload
+        String loginRequest = objectMapper.writeValueAsString(Map.of(
+                "username", username,
+                "password", password
+        ));
+
+        mockMvc.perform(post("/api/users/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(loginRequest))
+                .andExpect(status().isUnauthorized())
+                .andExpect(content().string("Invalid username or password"));
+
+        verify(userService, times(1)).authenticate(username, password);
+    }
+
+    @Test
+    public void testLogin_MissingFields() throws Exception {
+        // Missing password field in request
+        String incompleteLoginRequest = objectMapper.writeValueAsString(Map.of(
+                "username", "john_doe"
+        ));
+
+        mockMvc.perform(post("/api/users/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(incompleteLoginRequest))
+                .andExpect(status().isBadRequest());
     }
 
     @Configuration

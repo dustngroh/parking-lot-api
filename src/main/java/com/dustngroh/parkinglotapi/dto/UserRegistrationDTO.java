@@ -15,6 +15,12 @@ public class UserRegistrationDTO {
     @Size(min = 8, message = "Password must be at least 8 characters long.")
     private String password;
 
+    @NotBlank(message = "First name is required.")
+    private String firstName;
+
+    @NotBlank(message = "Last name is required.")
+    private String lastName;
+
     @NotBlank(message = "Plate number is required.")
     private String plateNumber;
 
@@ -37,6 +43,22 @@ public class UserRegistrationDTO {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public String getFirstName() {
+        return firstName;
+    }
+
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
     }
 
     public String getPlateNumber() {
@@ -62,12 +84,15 @@ public class UserRegistrationDTO {
         UserRegistrationDTO that = (UserRegistrationDTO) o;
         return Objects.equals(username, that.username) &&
                 Objects.equals(password, that.password) &&
+                Objects.equals(firstName, that.firstName) &&
+                Objects.equals(lastName, that.lastName) &&
                 Objects.equals(plateNumber, that.plateNumber) &&
                 Objects.equals(role, that.role);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(username, password, plateNumber, role);
+        return Objects.hash(username, password, firstName, lastName, plateNumber, role);
     }
+
 }

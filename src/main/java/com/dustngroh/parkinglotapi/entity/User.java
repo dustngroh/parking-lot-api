@@ -22,6 +22,12 @@ public class User {
     private String role; // e.g., 'USER', 'STAFF', 'ADMIN'
 
     @Column(nullable = false)
+    private String firstName;
+
+    @Column(nullable = false)
+    private String lastName;
+
+    @Column(nullable = false)
     private String plateNumber;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -86,5 +92,21 @@ public class User {
 
     public void setParkingLots(Set<ParkingLot> parkingLots) {
         this.parkingLots = parkingLots;
+    }
+
+    public String getFirstName() {
+        return firstName;
+    }
+
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
     }
 }

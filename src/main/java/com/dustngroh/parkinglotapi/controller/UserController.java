@@ -1,5 +1,6 @@
 package com.dustngroh.parkinglotapi.controller;
 
+import com.dustngroh.parkinglotapi.dto.LoginRequestDTO;
 import com.dustngroh.parkinglotapi.dto.UserMapper;
 import com.dustngroh.parkinglotapi.dto.UserRegistrationDTO;
 import com.dustngroh.parkinglotapi.entity.User;
@@ -31,6 +32,18 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.CREATED).body("User created successfully.");
         } catch (UserAlreadyExistsException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<String> login(@RequestBody @Valid LoginRequestDTO loginRequestDTO) {
+        try {
+            User user = userService.authenticate(loginRequestDTO.getUsername(), loginRequestDTO.getPassword());
+            // Generate a token if needed (e.g., JWT)
+            String token = "sample-jwt-token"; // Replace with real token generation logic
+            return ResponseEntity.ok("Login successful. Token: " + token);
+        } catch (UserNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
         }
     }
 
