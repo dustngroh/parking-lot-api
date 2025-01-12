@@ -3,6 +3,7 @@ package com.dustngroh.parkinglotapi.config;
 import com.dustngroh.parkinglotapi.service.ReservationService;
 import com.dustngroh.parkinglotapi.service.UserService;
 import com.dustngroh.parkinglotapi.dto.UserMapper;
+import com.dustngroh.parkinglotapi.util.JwtUtil;
 import org.mockito.Mockito;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,5 +24,10 @@ public class TestConfig {
     @Bean
     public ReservationService reservationService() {
         return Mockito.mock(ReservationService.class); // Add ReservationService mock
+    }
+
+    @Bean
+    public JwtUtil jwtUtil() {
+        return Mockito.mock(JwtUtil.class);
     }
 }

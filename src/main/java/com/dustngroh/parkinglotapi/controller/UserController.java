@@ -7,6 +7,7 @@ import com.dustngroh.parkinglotapi.entity.User;
 import com.dustngroh.parkinglotapi.exception.UserAlreadyExistsException;
 import com.dustngroh.parkinglotapi.exception.UserNotFoundException;
 import com.dustngroh.parkinglotapi.service.UserService;
+import com.dustngroh.parkinglotapi.util.JwtUtil;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,10 +19,12 @@ public class UserController {
 
     private final UserService userService;
     private final UserMapper userMapper;
+    private final JwtUtil jwtUtil;
 
-    public UserController(UserService userService, UserMapper userMapper) {
+    public UserController(UserService userService, UserMapper userMapper, JwtUtil jwtUtil) {
         this.userService = userService;
         this.userMapper = userMapper;
+        this.jwtUtil = jwtUtil;
     }
 
     @PostMapping("/register")
@@ -38,9 +41,13 @@ public class UserController {
     @PostMapping("/login")
     public ResponseEntity<String> login(@RequestBody @Valid LoginRequestDTO loginRequestDTO) {
         try {
+            // Authenticate user
             User user = userService.authenticate(loginRequestDTO.getUsername(), loginRequestDTO.getPassword());
-            // Generate a token if needed (e.g., JWT)
-            String token = "sample-jwt-token"; // Replace with real token generation logic
+
+            // Generate JWT token
+            String token = jwtUtil.generateToken(user.getUsername());
+
+            // Respond with the token
             return ResponseEntity.ok("Login successful. Token: " + token);
         } catch (UserNotFoundException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());

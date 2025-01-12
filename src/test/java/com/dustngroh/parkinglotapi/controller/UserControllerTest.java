@@ -6,6 +6,7 @@ import com.dustngroh.parkinglotapi.exception.UserAlreadyExistsException;
 import com.dustngroh.parkinglotapi.exception.UserNotFoundException;
 import com.dustngroh.parkinglotapi.service.UserService;
 import com.dustngroh.parkinglotapi.dto.UserMapper;
+import com.dustngroh.parkinglotapi.util.JwtUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,6 +26,7 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+
 @WebMvcTest(UserController.class)
 @ContextConfiguration(classes = {UserController.class, UserControllerTest.TestConfig.class})
 @AutoConfigureMockMvc(addFilters = false) // Disable Spring Security filters
@@ -42,12 +44,17 @@ public class UserControllerTest {
     @Autowired
     private UserMapper userMapper;
 
+    @Autowired
+    private JwtUtil jwtUtil;
+
     private UserRegistrationDTO validUserDTO;
     private User validUser;
 
     @BeforeEach
     public void setUp() {
-        Mockito.reset(userMapper, userService);
+        //mockMvc = MockMvcBuilders.standaloneSetup(userController).build();
+
+        Mockito.reset(userMapper, userService, jwtUtil);
 
         validUserDTO = new UserRegistrationDTO();
         validUserDTO.setUsername("john_doe");
@@ -103,6 +110,7 @@ public class UserControllerTest {
     public void testLogin_Success() throws Exception {
         String username = "john_doe";
         String password = "securepassword123";
+        String mockJwtToken = "mocked-jwt-token-value";
 
         User validUser = new User();
         validUser.setUsername(username);
@@ -110,6 +118,9 @@ public class UserControllerTest {
 
         // Mock the service to return the user for correct credentials
         when(userService.authenticate(username, password)).thenReturn(validUser);
+
+        // Mock the JWT utility to return the new token
+        when(jwtUtil.generateToken(validUser.getUsername())).thenReturn(mockJwtToken);
 
         // Create the request payload
         String loginRequest = objectMapper.writeValueAsString(Map.of(
@@ -121,7 +132,7 @@ public class UserControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(loginRequest))
                 .andExpect(status().isOk())
-                .andExpect(content().string("Login successful. Token: sample-jwt-token"));
+                .andExpect(content().string("Login successful. Token: " + mockJwtToken));
 
         verify(userService, times(1)).authenticate(username, password);
     }
@@ -173,6 +184,11 @@ public class UserControllerTest {
         @Bean
         public UserMapper userMapper() {
             return mock(UserMapper.class);
+        }
+
+        @Bean
+        public JwtUtil jwtUtil() {
+            return mock(JwtUtil.class); // Return mock instance
         }
     }
 }
