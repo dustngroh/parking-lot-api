@@ -106,4 +106,34 @@ public class ParkingLotControllerTest {
                 .andExpect(status().isNoContent());
     }
 
+    @Test
+    public void testIncrementReservedSpaces() throws Exception {
+        ParkingLot parkingLot = new ParkingLot();
+        parkingLot.setId(1L);
+        parkingLot.setName("Main Lot");
+        parkingLot.setTotalSpaces(100);
+        parkingLot.setReservedSpaces(50);
+
+        when(parkingLotService.incrementReservedSpaces(1L)).thenReturn(parkingLot);
+
+        mockMvc.perform(patch("/api/parkinglots/1/increment-reserved").with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.reservedSpaces").value(50));
+    }
+
+    @Test
+    public void testDecrementReservedSpaces() throws Exception {
+        ParkingLot parkingLot = new ParkingLot();
+        parkingLot.setId(1L);
+        parkingLot.setName("Main Lot");
+        parkingLot.setTotalSpaces(100);
+        parkingLot.setReservedSpaces(49);
+
+        when(parkingLotService.decrementReservedSpaces(1L)).thenReturn(parkingLot);
+
+        mockMvc.perform(patch("/api/parkinglots/1/decrement-reserved").with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.reservedSpaces").value(49));
+    }
+
 }

@@ -39,4 +39,24 @@ public class ParkingLotController {
         parkingLotService.deleteParkingLot(id);
         return ResponseEntity.noContent().build();
     }
+
+    @PatchMapping("/{id}/increment-reserved")
+    public ResponseEntity<ParkingLot> incrementReservedSpaces(@PathVariable Long id) {
+        try {
+            ParkingLot updatedParkingLot = parkingLotService.incrementReservedSpaces(id);
+            return ResponseEntity.ok(updatedParkingLot);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(null);
+        }
+    }
+
+    @PatchMapping("/{id}/decrement-reserved")
+    public ResponseEntity<ParkingLot> decrementReservedSpaces(@PathVariable Long id) {
+        try {
+            ParkingLot updatedParkingLot = parkingLotService.decrementReservedSpaces(id);
+            return ResponseEntity.ok(updatedParkingLot);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(null);
+        }
+    }
 }

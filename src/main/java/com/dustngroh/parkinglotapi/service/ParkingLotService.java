@@ -35,4 +35,28 @@ public class ParkingLotService {
     public int calculateAvailableSpaces(ParkingLot parkingLot) {
         return parkingLot.getTotalSpaces() - parkingLot.getReservedSpaces();
     }
+
+    public ParkingLot incrementReservedSpaces(Long parkingLotId) {
+        ParkingLot parkingLot = parkingLotRepository.findById(parkingLotId)
+                .orElseThrow(() -> new RuntimeException("Parking lot not found"));
+
+        if (parkingLot.getReservedSpaces() < parkingLot.getTotalSpaces()) {
+            parkingLot.setReservedSpaces(parkingLot.getReservedSpaces() + 1);
+            return parkingLotRepository.save(parkingLot);
+        } else {
+            throw new IllegalStateException("No available spaces to reserve");
+        }
+    }
+
+    public ParkingLot decrementReservedSpaces(Long parkingLotId) {
+        ParkingLot parkingLot = parkingLotRepository.findById(parkingLotId)
+                .orElseThrow(() -> new RuntimeException("Parking lot not found"));
+
+        if (parkingLot.getReservedSpaces() > 0) {
+            parkingLot.setReservedSpaces(parkingLot.getReservedSpaces() - 1);
+            return parkingLotRepository.save(parkingLot);
+        } else {
+            throw new IllegalStateException("No reserved spaces to release");
+        }
+    }
 }
