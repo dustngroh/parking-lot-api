@@ -2,6 +2,7 @@ package com.dustngroh.parkinglotapi.controller;
 
 import com.dustngroh.parkinglotapi.entity.Reservation;
 import com.dustngroh.parkinglotapi.service.ReservationService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -44,6 +45,26 @@ public class ReservationController {
     public ResponseEntity<Reservation> createReservation(@RequestBody Reservation reservation) {
         Reservation savedReservation = reservationService.saveReservation(reservation);
         return ResponseEntity.ok(savedReservation);
+    }
+
+    @DeleteMapping("/{id}/confirm")
+    public ResponseEntity<String> confirmReservation(@PathVariable Long id) {
+        try {
+            reservationService.confirmReservation(id);
+            return ResponseEntity.ok("Reservation confirmed and deleted successfully.");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Error: " + e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/{id}/cancel")
+    public ResponseEntity<String> cancelReservation(@PathVariable Long id) {
+        try {
+            reservationService.cancelReservation(id);
+            return ResponseEntity.ok("Reservation cancelled and deleted successfully.");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error: " + e.getMessage());
+        }
     }
 
     @DeleteMapping("/{id}")

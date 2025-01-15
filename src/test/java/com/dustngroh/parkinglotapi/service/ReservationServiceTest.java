@@ -1,6 +1,8 @@
 package com.dustngroh.parkinglotapi.service;
 
+import com.dustngroh.parkinglotapi.entity.ParkingLot;
 import com.dustngroh.parkinglotapi.entity.Reservation;
+import com.dustngroh.parkinglotapi.repository.ParkingLotRepository;
 import com.dustngroh.parkinglotapi.repository.ReservationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,10 +23,14 @@ public class ReservationServiceTest {
 
     private ReservationRepository reservationRepository;
 
+    private ParkingLotRepository parkingLotRepository;
+
     @BeforeEach
     public void setUp() {
         reservationRepository = mock(ReservationRepository.class);
-        reservationService = new ReservationService(reservationRepository);
+        parkingLotRepository = mock(ParkingLotRepository.class);
+        reservationService = new ReservationService(reservationRepository, parkingLotRepository);
+
     }
 
     @Test
@@ -52,14 +58,29 @@ public class ReservationServiceTest {
 
     @Test
     public void testSaveReservation() {
-        Reservation reservation = new Reservation();
+        // Create and set up a ParkingLot instance
+        ParkingLot parkingLot = new ParkingLot();
+        parkingLot.setId(1L);
+        parkingLot.setName("Main Lot");
+        parkingLot.setTotalSpaces(100);
+        parkingLot.setReservedSpaces(50);
 
+        // Create and set up a Reservation instance
+        Reservation reservation = new Reservation();
+        reservation.setParkingLot(parkingLot); // Assign the ParkingLot to the Reservation
+
+        // Mock repository behavior
+        when(parkingLotRepository.findById(1L)).thenReturn(Optional.of(parkingLot));
         when(reservationRepository.save(reservation)).thenReturn(reservation);
 
+        // Call the service method
         Reservation savedReservation = reservationService.saveReservation(reservation);
 
-        assertEquals(reservation.getParkingLot(), savedReservation.getParkingLot());
-        assertEquals(reservation.getUser(), savedReservation.getUser());
+        // Assertions
+        assertEquals(parkingLot, savedReservation.getParkingLot());
+        assertEquals(51, parkingLot.getReservedSpaces()); // Verify that reserved spaces were incremented
+        verify(parkingLotRepository, times(1)).save(parkingLot);
+        verify(reservationRepository, times(1)).save(reservation);
     }
 
     @Test
@@ -90,4 +111,60 @@ public class ReservationServiceTest {
         verify(reservationRepository, times(1))
                 .findByUser_UsernameAndParkingLot_Name(username, parkingLotName);
     }
+
+    @Test
+    public void testSaveReservationIncrementsReservedSpaces() {
+        ParkingLot parkingLot = new ParkingLot();
+        parkingLot.setId(1L);
+        parkingLot.setName("Main Lot");
+        parkingLot.setTotalSpaces(100);
+        parkingLot.setReservedSpaces(50);
+
+        Reservation reservation = new Reservation();
+        reservation.setParkingLot(parkingLot);
+
+        when(parkingLotRepository.findById(1L)).thenReturn(Optional.of(parkingLot));
+        when(reservationRepository.save(any(Reservation.class))).thenReturn(reservation);
+
+        reservationService.saveReservation(reservation);
+
+        assertEquals(51, parkingLot.getReservedSpaces());
+        verify(parkingLotRepository, times(1)).save(parkingLot);
+        verify(reservationRepository, times(1)).save(reservation);
+    }
+
+    @Test
+    public void testConfirmReservation() {
+        Reservation reservation = new Reservation();
+        reservation.setId(1L);
+
+        when(reservationRepository.findById(1L)).thenReturn(Optional.of(reservation));
+
+        reservationService.confirmReservation(1L);
+
+        verify(reservationRepository, times(1)).delete(reservation);
+    }
+
+    @Test
+    public void testCancelReservation() {
+        ParkingLot parkingLot = new ParkingLot();
+        parkingLot.setId(1L);
+        parkingLot.setName("Main Lot");
+        parkingLot.setTotalSpaces(100);
+        parkingLot.setReservedSpaces(50);
+
+        Reservation reservation = new Reservation();
+        reservation.setId(1L);
+        reservation.setParkingLot(parkingLot);
+
+        when(reservationRepository.findById(1L)).thenReturn(Optional.of(reservation));
+        when(parkingLotRepository.save(parkingLot)).thenReturn(parkingLot);
+
+        reservationService.cancelReservation(1L);
+
+        assertEquals(49, parkingLot.getReservedSpaces());
+        verify(parkingLotRepository, times(1)).save(parkingLot);
+        verify(reservationRepository, times(1)).delete(reservation);
+    }
+
 }
