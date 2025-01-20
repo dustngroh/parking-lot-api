@@ -13,6 +13,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
+
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
@@ -39,7 +41,7 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody @Valid LoginRequestDTO loginRequestDTO) {
+    public ResponseEntity<?> login(@RequestBody @Valid LoginRequestDTO loginRequestDTO) {
         try {
             // Authenticate user
             User user = userService.authenticate(loginRequestDTO.getUsername(), loginRequestDTO.getPassword());
@@ -47,10 +49,10 @@ public class UserController {
             // Generate JWT token
             String token = jwtUtil.generateToken(user.getUsername());
 
-            // Respond with the token
-            return ResponseEntity.ok("Login successful. Token: " + token);
+            // Respond with the token as JSON
+            return ResponseEntity.ok(Collections.singletonMap("token", token));
         } catch (UserNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Collections.singletonMap("error", e.getMessage()));
         }
     }
 
