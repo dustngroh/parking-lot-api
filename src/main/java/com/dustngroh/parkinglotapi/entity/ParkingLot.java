@@ -15,6 +15,9 @@ public class ParkingLot {
     private String name;
 
     @Column(nullable = false)
+    private String address = "Unknown";
+
+    @Column(nullable = false)
     private int totalSpaces;
 
     @Column(nullable = false)
@@ -47,6 +50,14 @@ public class ParkingLot {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
     }
 
     public int getTotalSpaces() {
