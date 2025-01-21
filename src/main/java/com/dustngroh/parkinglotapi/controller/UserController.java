@@ -1,5 +1,6 @@
 package com.dustngroh.parkinglotapi.controller;
 
+import com.dustngroh.parkinglotapi.dto.ChangeUserRoleDTO;
 import com.dustngroh.parkinglotapi.dto.LoginRequestDTO;
 import com.dustngroh.parkinglotapi.dto.UserMapper;
 import com.dustngroh.parkinglotapi.dto.UserRegistrationDTO;
@@ -11,6 +12,7 @@ import com.dustngroh.parkinglotapi.util.JwtUtil;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Collections;
@@ -73,6 +75,19 @@ public class UserController {
             return ResponseEntity.ok("Password updated successfully.");
         } catch (UserNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/change-role")
+    public ResponseEntity<String> changeUserRole(@RequestBody ChangeUserRoleDTO request) {
+        try {
+            userService.changeUserRole(request.getUserId(), request.getRole());
+            return ResponseEntity.ok("User type changed successfully.");
+        } catch (UserNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 

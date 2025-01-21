@@ -7,6 +7,7 @@ import com.dustngroh.parkinglotapi.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -92,6 +93,23 @@ public class UserService {
                 }, () -> {
                     throw new UserNotFoundException("User with ID " + userId + " not found.");
                 });
+    }
+
+    public void changeUserRole(Long userId, String newUserRole) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found with ID: " + userId));
+
+        // Validate newUserType if needed
+        if (!isValidUserRole(newUserRole)) {
+            throw new IllegalArgumentException("Invalid user type: " + newUserRole);
+        }
+
+        user.setRole(newUserRole);
+        userRepository.save(user);
+    }
+
+    private boolean isValidUserRole(String role) {
+        return Arrays.asList("ADMIN", "USER", "STAFF").contains(role.toUpperCase());
     }
 
 }
