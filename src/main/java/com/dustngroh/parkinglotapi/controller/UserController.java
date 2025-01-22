@@ -49,7 +49,7 @@ public class UserController {
             User user = userService.authenticate(loginRequestDTO.getUsername(), loginRequestDTO.getPassword());
 
             // Generate JWT token
-            String token = jwtUtil.generateToken(user.getUsername());
+            String token = jwtUtil.generateToken(user);
 
             // Respond with the token as JSON
             return ResponseEntity.ok(Collections.singletonMap("token", token));

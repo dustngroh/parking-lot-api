@@ -7,12 +7,15 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.List;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -38,17 +41,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String token = authHeader.replace("Bearer ", "");
             Claims claims = jwtUtil.validateToken(token);
             String username = claims.getSubject();
+            String role = claims.get("role", String.class);
 
             // Set authentication in SecurityContextHolder
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
                 UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
-                        username, null, null); // Add roles/authorities here if available
+                        username, null, authorities); // Add roles/authorities here if available
                 authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authenticationToken);
             }
 
             // Add user information to the request (optional)
             request.setAttribute("username", username);
+            request.setAttribute("role", role);
         } catch (Exception e) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.getWriter().write("Invalid or expired token.");

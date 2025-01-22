@@ -1,5 +1,6 @@
 package com.dustngroh.parkinglotapi.util;
 
+import com.dustngroh.parkinglotapi.entity.User;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.Claims;
@@ -34,6 +35,17 @@ public class JwtUtil {
                 .compact();
     }
 
+    // Generate a JWT token
+    public String generateToken(User user) {
+        return Jwts.builder()
+                .setSubject(user.getUsername())
+                .claim("role", user.getRole())
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
+                .signWith(getSecretKey(), SignatureAlgorithm.HS256)
+                .compact();
+    }
+
     // Validate a JWT token
     public Claims validateToken(String token) {
         return Jwts.parserBuilder()
@@ -47,5 +59,11 @@ public class JwtUtil {
     public String getUsernameFromToken(String token) {
         Claims claims = validateToken(token);
         return claims.getSubject();
+    }
+
+    // Extract role from a JWT token
+    public String getRoleFromToken(String token) {
+        Claims claims = validateToken(token);
+        return claims.get("role", String.class);
     }
 }
