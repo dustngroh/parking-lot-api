@@ -9,6 +9,8 @@ import com.dustngroh.parkinglotapi.exception.UserAlreadyExistsException;
 import com.dustngroh.parkinglotapi.exception.UserNotFoundException;
 import com.dustngroh.parkinglotapi.service.UserService;
 import com.dustngroh.parkinglotapi.util.JwtUtil;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -43,19 +45,48 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody @Valid LoginRequestDTO loginRequestDTO) {
+    public ResponseEntity<?> login(@RequestBody @Valid LoginRequestDTO loginRequestDTO, HttpServletResponse response) {
         try {
             // Authenticate user
             User user = userService.authenticate(loginRequestDTO.getUsername(), loginRequestDTO.getPassword());
+
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials");
+            }
 
             // Generate JWT token
             String token = jwtUtil.generateToken(user);
 
             // Respond with the token as JSON
-            return ResponseEntity.ok(Collections.singletonMap("token", token));
+            //return ResponseEntity.ok(Collections.singletonMap("token", token));
+
+            // Set the JWT as an HttpOnly cookie
+            Cookie jwtCookie = new Cookie("jwtToken", token);
+            jwtCookie.setHttpOnly(true);
+            jwtCookie.setSecure(true); // Ensure it's only sent over HTTPS
+            jwtCookie.setPath("/");
+            jwtCookie.setMaxAge(24 * 60 * 60); // 1 day expiration
+
+            response.addCookie(jwtCookie);
+
+            return ResponseEntity.ok("Login successful");
+
         } catch (UserNotFoundException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Collections.singletonMap("error", e.getMessage()));
         }
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpServletResponse response) {
+        Cookie jwtCookie = new Cookie("jwtToken", null);
+        jwtCookie.setHttpOnly(true);
+        jwtCookie.setSecure(true);
+        jwtCookie.setPath("/");
+        jwtCookie.setMaxAge(0); // Expire immediately
+
+        response.addCookie(jwtCookie);
+
+        return ResponseEntity.ok("Logged out successfully");
     }
 
     @PutMapping("/{id}")
@@ -75,6 +106,21 @@ public class UserController {
             return ResponseEntity.ok("Password updated successfully.");
         } catch (UserNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/role")
+    public ResponseEntity<?> getUserRole(@CookieValue(name = "jwtToken", required = false) String token) {
+        if (token == null || token.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token is missing or invalid");
+        }
+
+        try {
+            // Validate the token and extract the role
+            String role = jwtUtil.getRoleFromToken(token);
+            return ResponseEntity.ok(Collections.singletonMap("role", role));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or expired token");
         }
     }
 
