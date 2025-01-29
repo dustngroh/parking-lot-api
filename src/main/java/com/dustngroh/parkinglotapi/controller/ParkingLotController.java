@@ -1,8 +1,10 @@
 package com.dustngroh.parkinglotapi.controller;
 
+import com.dustngroh.parkinglotapi.dto.ParkingLotDTO;
 import com.dustngroh.parkinglotapi.entity.ParkingLot;
 import com.dustngroh.parkinglotapi.service.ParkingLotService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -29,9 +31,11 @@ public class ParkingLotController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
-    public ParkingLot createParkingLot(@RequestBody ParkingLot parkingLot) {
-        return parkingLotService.saveParkingLot(parkingLot);
+    public ResponseEntity<ParkingLot> createParkingLot(@RequestBody ParkingLotDTO parkingLotDTO) {
+        ParkingLot createdParkingLot = parkingLotService.createParkingLot(parkingLotDTO);
+        return ResponseEntity.ok(createdParkingLot);
     }
 
     @DeleteMapping("/{id}")

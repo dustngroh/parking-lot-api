@@ -1,5 +1,6 @@
 package com.dustngroh.parkinglotapi.service;
 
+import com.dustngroh.parkinglotapi.dto.ParkingLotDTO;
 import com.dustngroh.parkinglotapi.entity.ParkingLot;
 import com.dustngroh.parkinglotapi.repository.ParkingLotRepository;
 import org.springframework.stereotype.Service;
@@ -27,6 +28,22 @@ public class ParkingLotService {
     public ParkingLot saveParkingLot(ParkingLot parkingLot) {
         return parkingLotRepository.save(parkingLot);
     }
+
+    public ParkingLot createParkingLot(ParkingLotDTO parkingLotDTO) {
+        ParkingLot parkingLot = new ParkingLot();
+        parkingLot.setName(parkingLotDTO.getName());
+        parkingLot.setAddress(parkingLotDTO.getAddress());
+        parkingLot.setTotalSpaces(parkingLotDTO.getTotalSpaces());
+
+        // Ensure reservedSpaces does not exceed totalSpaces
+        if (parkingLotDTO.getReservedSpaces() > parkingLotDTO.getTotalSpaces()) {
+            throw new IllegalArgumentException("Reserved spaces cannot exceed total spaces.");
+        }
+        parkingLot.setReservedSpaces(parkingLotDTO.getReservedSpaces());
+
+        return parkingLotRepository.save(parkingLot);
+    }
+
 
     public void deleteParkingLot(Long id) {
         parkingLotRepository.deleteById(id);
