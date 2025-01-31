@@ -1,7 +1,11 @@
 package com.dustngroh.parkinglotapi.controller;
 
 import com.dustngroh.parkinglotapi.entity.Reservation;
+import com.dustngroh.parkinglotapi.entity.User;
 import com.dustngroh.parkinglotapi.service.ReservationService;
+import com.dustngroh.parkinglotapi.service.UserService;
+import com.dustngroh.parkinglotapi.util.JwtUtil;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,57 +17,115 @@ import java.util.List;
 public class ReservationController {
 
     private final ReservationService reservationService;
+    private final UserService userService;
+    private final JwtUtil jwtUtil;
 
-    public ReservationController(ReservationService reservationService) {
+    public ReservationController(ReservationService reservationService, UserService userService, JwtUtil jwtUtil) {
         this.reservationService = reservationService;
+        this.userService = userService;
+        this.jwtUtil = jwtUtil;
     }
 
     @GetMapping
     public List<Reservation> getAllReservations() {
-        return reservationService.getAllReservations(); // Assume this method exists or implement it
+        return reservationService.getAllReservations();
     }
 
-    @GetMapping("/user/{username}")
-    public List<Reservation> getReservationsByUser(@PathVariable String username) {
-        return reservationService.getReservationsByUser(username);
-    }
+    @GetMapping("/user")
+    public ResponseEntity<List<Reservation>> getReservationsByUser(
+            @CookieValue(name = "jwtToken", required = false) String token
+    ) {
+        if (token == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
+        }
 
-    @GetMapping("/parkinglot/{parkingLotName}")
-    public List<Reservation> getReservationsByParkingLot(@PathVariable String parkingLotName) {
-        return reservationService.getReservationsByParkingLot(parkingLotName);
+        try {
+            String username = jwtUtil.getUsernameFromToken(token);
+            if (username == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
+            }
+
+            List<Reservation> reservations = reservationService.getReservationsByUser(username);
+            return ResponseEntity.ok(reservations);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
     }
 
     @GetMapping("/exists")
     public ResponseEntity<Boolean> hasReservation(
-            @RequestParam String username,
-            @RequestParam String parkingLotName) {
-        boolean exists = reservationService.hasReservation(username, parkingLotName);
-        return ResponseEntity.ok(exists);
-    }
+            @RequestParam Long parkingLotId,
+            @CookieValue(name = "jwtToken", required = false) String token
+    ) {
+        if (token == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(false);
+        }
 
-    @PostMapping
-    public ResponseEntity<Reservation> createReservation(@RequestBody Reservation reservation) {
-        Reservation savedReservation = reservationService.saveReservation(reservation);
-        return ResponseEntity.ok(savedReservation);
-    }
-
-    @DeleteMapping("/{id}/confirm")
-    public ResponseEntity<String> confirmReservation(@PathVariable Long id) {
         try {
-            reservationService.confirmReservation(id);
-            return ResponseEntity.ok("Reservation confirmed and deleted successfully.");
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Error: " + e.getMessage());
+            String username = jwtUtil.getUsernameFromToken(token);
+            if (username == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(false);
+            }
+
+            boolean exists = reservationService.hasReservation(username, parkingLotId);
+            return ResponseEntity.ok(exists);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(false);
         }
     }
 
-    @DeleteMapping("/{id}/cancel")
-    public ResponseEntity<String> cancelReservation(@PathVariable Long id) {
+    @PostMapping
+    public ResponseEntity<Reservation> createReservation(
+            @RequestParam Long parkingLotId,
+            @CookieValue(name = "jwtToken", required = false) String token
+    ) {
+        if (token == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
         try {
-            reservationService.cancelReservation(id);
-            return ResponseEntity.ok("Reservation cancelled and deleted successfully.");
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error: " + e.getMessage());
+            String username = jwtUtil.getUsernameFromToken(token);
+            if (username == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+
+            // Get the user entity
+            User user = userService.getUserByUsername(username).orElse(null);
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            }
+
+            // Create the reservation
+            Reservation newReservation = reservationService.createReservation(user, parkingLotId);
+            return ResponseEntity.status(HttpStatus.CREATED).body(newReservation);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @DeleteMapping("/cancel")
+    public ResponseEntity<String> cancelReservation(
+            @RequestParam Long parkingLotId,
+            @CookieValue(name = "jwtToken", required = false) String token
+    ) {
+        if (token == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+        }
+
+        try {
+            String username = jwtUtil.getUsernameFromToken(token);
+            if (username == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+            }
+
+            boolean canceled = reservationService.cancelReservation(username, parkingLotId);
+            if (canceled) {
+                return ResponseEntity.ok("Reservation cancelled successfully.");
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("No reservation found to cancel.");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error: " + e.getMessage());
         }
     }
 

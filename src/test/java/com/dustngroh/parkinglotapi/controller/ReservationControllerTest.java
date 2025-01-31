@@ -1,19 +1,21 @@
 package com.dustngroh.parkinglotapi.controller;
 
 import com.dustngroh.parkinglotapi.entity.Reservation;
+import com.dustngroh.parkinglotapi.entity.User;
 import com.dustngroh.parkinglotapi.service.ReservationService;
+import com.dustngroh.parkinglotapi.service.UserService;
+import com.dustngroh.parkinglotapi.util.JwtUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.mock.web.MockCookie;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
@@ -26,7 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(ReservationController.class)
 @ContextConfiguration(classes = {ReservationController.class, ReservationControllerTest.TestConfig.class})
-@AutoConfigureMockMvc(addFilters = false) // Disable security for testing
+@AutoConfigureMockMvc(addFilters = false) // Disable security filters in tests
 public class ReservationControllerTest {
 
     @Autowired
@@ -38,35 +40,34 @@ public class ReservationControllerTest {
     @Autowired
     private ReservationService reservationService;
 
-    @InjectMocks
-    private ReservationController reservationController;
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    private final String jwtToken = "mockJwtToken";
+    private final String username = "john_doe";
+    private final Long parkingLotId = 1L;
+    private MockCookie jwtCookie;
 
     @BeforeEach
     public void setUp() {
-        reset(reservationService);
-    }
+        Mockito.reset(reservationService, userService, jwtUtil);
 
-    @Test
-    public void testGetAllReservations() throws Exception {
-        Reservation reservation1 = new Reservation();
-        Reservation reservation2 = new Reservation();
-        when(reservationService.getAllReservations()).thenReturn(List.of(reservation1, reservation2));
+        jwtCookie = new MockCookie("jwtToken", jwtToken);
+        jwtCookie.setHttpOnly(true); // Simulate HTTP-only cookie
 
-        mockMvc.perform(get("/api/reservations"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2));
-
-        verify(reservationService, times(1)).getAllReservations();
+        when(jwtUtil.getUsernameFromToken(jwtToken)).thenReturn(username);
+        when(userService.getUserByUsername(username)).thenReturn(Optional.of(new User()));
     }
 
     @Test
     public void testGetReservationsByUser() throws Exception {
-        String username = "john_doe";
-        Reservation reservation = new Reservation();
-        //reservation.setId(1L);
-        when(reservationService.getReservationsByUser(username)).thenReturn(List.of(reservation));
+        when(reservationService.getReservationsByUser(username)).thenReturn(List.of(new Reservation()));
 
-        mockMvc.perform(get("/api/reservations/user/{username}", username))
+        mockMvc.perform(get("/api/reservations/user")
+                        .cookie(jwtCookie))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1));
 
@@ -74,56 +75,61 @@ public class ReservationControllerTest {
     }
 
     @Test
-    public void testGetReservationsByParkingLot() throws Exception {
-        String parkingLotName = "Main Lot";
-        Reservation reservation = new Reservation();
-        when(reservationService.getReservationsByParkingLot(parkingLotName)).thenReturn(List.of(reservation));
-
-        mockMvc.perform(get("/api/reservations/parkinglot/{parkingLotName}", parkingLotName))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1));
-
-        verify(reservationService, times(1)).getReservationsByParkingLot(parkingLotName);
-    }
-
-    @Test
     public void testHasReservation() throws Exception {
-        String username = "john_doe";
-        String parkingLotName = "Main Lot";
-        when(reservationService.hasReservation(username, parkingLotName)).thenReturn(true);
+        when(reservationService.hasReservation(username, parkingLotId)).thenReturn(true);
 
         mockMvc.perform(get("/api/reservations/exists")
-                        .param("username", username)
-                        .param("parkingLotName", parkingLotName))
+                        .param("parkingLotId", String.valueOf(parkingLotId))
+                        .cookie(jwtCookie))
                 .andExpect(status().isOk())
                 .andExpect(content().string("true"));
 
-        verify(reservationService, times(1)).hasReservation(username, parkingLotName);
+        verify(reservationService, times(1)).hasReservation(username, parkingLotId);
     }
 
     @Test
     public void testCreateReservation() throws Exception {
+        User mockUser = new User();
         Reservation reservation = new Reservation();
-        when(reservationService.saveReservation(any(Reservation.class))).thenReturn(reservation);
+
+        when(userService.getUserByUsername(username)).thenReturn(Optional.of(mockUser));
+        when(reservationService.createReservation(mockUser, parkingLotId)).thenReturn(reservation);
 
         mockMvc.perform(post("/api/reservations")
-                        .contentType("application/json")
-                        .content(objectMapper.writeValueAsString(reservation))
+                        .param("parkingLotId", String.valueOf(parkingLotId))
+                        .cookie(jwtCookie)
                         .with(csrf()))
-                .andExpect(status().isOk());
+                .andExpect(status().isCreated());
 
-        verify(reservationService, times(1)).saveReservation(any(Reservation.class));
+        verify(reservationService, times(1)).createReservation(mockUser, parkingLotId);
     }
 
     @Test
-    public void testDeleteReservation() throws Exception {
-        doNothing().when(reservationService).deleteReservation(1L);
+    public void testCancelReservation() throws Exception {
+        when(reservationService.cancelReservation(username, parkingLotId)).thenReturn(true);
 
-        mockMvc.perform(delete("/api/reservations/{id}", 1L)
+        mockMvc.perform(delete("/api/reservations/cancel")
+                        .param("parkingLotId", String.valueOf(parkingLotId))
+                        .cookie(jwtCookie)
                         .with(csrf()))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isOk())
+                .andExpect(content().string("Reservation cancelled successfully."));
 
-        verify(reservationService, times(1)).deleteReservation(1L);
+        verify(reservationService, times(1)).cancelReservation(username, parkingLotId);
+    }
+
+    @Test
+    public void testCancelReservation_NotFound() throws Exception {
+        when(reservationService.cancelReservation(username, parkingLotId)).thenReturn(false);
+
+        mockMvc.perform(delete("/api/reservations/cancel")
+                        .param("parkingLotId", String.valueOf(parkingLotId))
+                        .cookie(jwtCookie)
+                        .with(csrf()))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("No reservation found to cancel."));
+
+        verify(reservationService, times(1)).cancelReservation(username, parkingLotId);
     }
 
     @Configuration
@@ -131,6 +137,16 @@ public class ReservationControllerTest {
         @Bean
         public ReservationService reservationService() {
             return mock(ReservationService.class);
+        }
+
+        @Bean
+        public UserService userService() {
+            return mock(UserService.class);
+        }
+
+        @Bean
+        public JwtUtil jwtUtil() {
+            return mock(JwtUtil.class);
         }
     }
 }

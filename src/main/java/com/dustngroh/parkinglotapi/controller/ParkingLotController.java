@@ -8,6 +8,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/parkinglots")
@@ -20,14 +21,30 @@ public class ParkingLotController {
     }
 
     @GetMapping
-    public List<ParkingLot> getAllParkingLots() {
-        return parkingLotService.getAllParkingLots();
+    public ResponseEntity<List<ParkingLotDTO>> getAllParkingLots() {
+        List<ParkingLotDTO> lots = parkingLotService.getAllParkingLots()
+                .stream()
+                .map(ParkingLotDTO::new)
+                .toList();
+        return ResponseEntity.ok(lots);
     }
 
-    @GetMapping("/{name}")
-    public ResponseEntity<ParkingLot> getParkingLotByName(@PathVariable String name) {
-        return parkingLotService.getParkingLotByName(name)
-                .map(ResponseEntity::ok)
+//    @GetMapping
+//    public List<ParkingLot> getAllParkingLots() {
+//        return parkingLotService.getAllParkingLots();
+//    }
+
+//    @GetMapping("/{name}")
+//    public ResponseEntity<ParkingLot> getParkingLotByName(@PathVariable String name) {
+//        return parkingLotService.getParkingLotByName(name)
+//                .map(ResponseEntity::ok)
+//                .orElse(ResponseEntity.notFound().build());
+//    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ParkingLot> getParkingLotById(@PathVariable Long id) {
+        Optional<ParkingLot> parkingLot = parkingLotService.getParkingLotById(id);
+        return parkingLot.map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 

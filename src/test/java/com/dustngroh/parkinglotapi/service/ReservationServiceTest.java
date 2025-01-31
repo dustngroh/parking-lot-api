@@ -2,12 +2,19 @@ package com.dustngroh.parkinglotapi.service;
 
 import com.dustngroh.parkinglotapi.entity.ParkingLot;
 import com.dustngroh.parkinglotapi.entity.Reservation;
+import com.dustngroh.parkinglotapi.entity.User;
 import com.dustngroh.parkinglotapi.repository.ParkingLotRepository;
 import com.dustngroh.parkinglotapi.repository.ReservationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.test.context.ContextConfiguration;
 
 import java.util.List;
 import java.util.Optional;
@@ -15,29 +22,31 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-@SpringBootTest
+@ExtendWith(MockitoExtension.class)
+@ContextConfiguration(classes = {ReservationServiceTest.TestConfig.class})
 public class ReservationServiceTest {
 
-    @Autowired
-    private ReservationService reservationService;
-
+    @Mock
     private ReservationRepository reservationRepository;
 
+    @Mock
     private ParkingLotRepository parkingLotRepository;
+
+    @InjectMocks
+    private ReservationService reservationService;
+
+    private final String username = "john_doe";
+    private final Long parkingLotId = 1L;
 
     @BeforeEach
     public void setUp() {
-        reservationRepository = mock(ReservationRepository.class);
-        parkingLotRepository = mock(ParkingLotRepository.class);
+        MockitoAnnotations.openMocks(this); // Initialize mocks
         reservationService = new ReservationService(reservationRepository, parkingLotRepository);
-
     }
 
     @Test
     public void testGetAllReservations() {
-        Reservation reservation1 = new Reservation();
-        Reservation reservation2 = new Reservation();
-        when(reservationRepository.findAll()).thenReturn(List.of(reservation1, reservation2));
+        when(reservationRepository.findAll()).thenReturn(List.of(new Reservation(), new Reservation()));
 
         List<Reservation> reservations = reservationService.getAllReservations();
 
@@ -47,124 +56,112 @@ public class ReservationServiceTest {
 
     @Test
     public void testGetReservationsByUser() {
-        Reservation reservation = new Reservation();
+        when(reservationRepository.findByUser_Username(username)).thenReturn(List.of(new Reservation()));
 
-        when(reservationRepository.findByUser_Username("john_doe")).thenReturn(List.of(reservation));
-
-        List<Reservation> reservations = reservationService.getReservationsByUser("john_doe");
+        List<Reservation> reservations = reservationService.getReservationsByUser(username);
 
         assertEquals(1, reservations.size());
-    }
-
-    @Test
-    public void testSaveReservation() {
-        // Create and set up a ParkingLot instance
-        ParkingLot parkingLot = new ParkingLot();
-        parkingLot.setId(1L);
-        parkingLot.setName("Main Lot");
-        parkingLot.setTotalSpaces(100);
-        parkingLot.setReservedSpaces(50);
-
-        // Create and set up a Reservation instance
-        Reservation reservation = new Reservation();
-        reservation.setParkingLot(parkingLot); // Assign the ParkingLot to the Reservation
-
-        // Mock repository behavior
-        when(parkingLotRepository.findById(1L)).thenReturn(Optional.of(parkingLot));
-        when(reservationRepository.save(reservation)).thenReturn(reservation);
-
-        // Call the service method
-        Reservation savedReservation = reservationService.saveReservation(reservation);
-
-        // Assertions
-        assertEquals(parkingLot, savedReservation.getParkingLot());
-        assertEquals(51, parkingLot.getReservedSpaces()); // Verify that reserved spaces were incremented
-        verify(parkingLotRepository, times(1)).save(parkingLot);
-        verify(reservationRepository, times(1)).save(reservation);
+        verify(reservationRepository, times(1)).findByUser_Username(username);
     }
 
     @Test
     public void testHasReservation() {
-        String username = "john_doe";
-        String parkingLotName = "Main Lot";
+        when(reservationRepository.findByUser_UsernameAndParkingLot_Id(username, parkingLotId))
+                .thenReturn(Optional.of(new Reservation()));
 
-        Reservation reservation = new Reservation();
-        when(reservationRepository.findByUser_UsernameAndParkingLot_Name(username, parkingLotName))
-                .thenReturn(Optional.of(reservation));
-
-        assertTrue(reservationService.hasReservation(username, parkingLotName));
-
-        verify(reservationRepository, times(1))
-                .findByUser_UsernameAndParkingLot_Name(username, parkingLotName);
+        assertTrue(reservationService.hasReservation(username, parkingLotId));
+        verify(reservationRepository, times(1)).findByUser_UsernameAndParkingLot_Id(username, parkingLotId);
     }
 
     @Test
     public void testHasNoReservation() {
-        String username = "john_doe";
-        String parkingLotName = "NonExistent Lot";
-
-        when(reservationRepository.findByUser_UsernameAndParkingLot_Name(username, parkingLotName))
+        when(reservationRepository.findByUser_UsernameAndParkingLot_Id(username, parkingLotId))
                 .thenReturn(Optional.empty());
 
-        assertFalse(reservationService.hasReservation(username, parkingLotName));
-
-        verify(reservationRepository, times(1))
-                .findByUser_UsernameAndParkingLot_Name(username, parkingLotName);
+        assertFalse(reservationService.hasReservation(username, parkingLotId));
+        verify(reservationRepository, times(1)).findByUser_UsernameAndParkingLot_Id(username, parkingLotId);
     }
 
     @Test
-    public void testSaveReservationIncrementsReservedSpaces() {
+    public void testCreateReservation() {
+        User mockUser = new User();
+        mockUser.setUsername(username);
+
         ParkingLot parkingLot = new ParkingLot();
-        parkingLot.setId(1L);
+        parkingLot.setId(parkingLotId);
         parkingLot.setName("Main Lot");
         parkingLot.setTotalSpaces(100);
         parkingLot.setReservedSpaces(50);
 
-        Reservation reservation = new Reservation();
-        reservation.setParkingLot(parkingLot);
+        when(parkingLotRepository.findById(parkingLotId)).thenReturn(Optional.of(parkingLot));
+        when(reservationRepository.findByUser_UsernameAndParkingLot_Id(username, parkingLotId)).thenReturn(Optional.empty());
+        when(reservationRepository.save(any(Reservation.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        when(parkingLotRepository.findById(1L)).thenReturn(Optional.of(parkingLot));
-        when(reservationRepository.save(any(Reservation.class))).thenReturn(reservation);
+        Reservation savedReservation = reservationService.createReservation(mockUser, parkingLotId);
 
-        reservationService.saveReservation(reservation);
-
+        assertEquals(parkingLot, savedReservation.getParkingLot());
         assertEquals(51, parkingLot.getReservedSpaces());
         verify(parkingLotRepository, times(1)).save(parkingLot);
-        verify(reservationRepository, times(1)).save(reservation);
-    }
-
-    @Test
-    public void testConfirmReservation() {
-        Reservation reservation = new Reservation();
-        reservation.setId(1L);
-
-        when(reservationRepository.findById(1L)).thenReturn(Optional.of(reservation));
-
-        reservationService.confirmReservation(1L);
-
-        verify(reservationRepository, times(1)).delete(reservation);
+        verify(reservationRepository, times(1)).save(any(Reservation.class));
     }
 
     @Test
     public void testCancelReservation() {
         ParkingLot parkingLot = new ParkingLot();
-        parkingLot.setId(1L);
-        parkingLot.setName("Main Lot");
+        parkingLot.setId(parkingLotId);
         parkingLot.setTotalSpaces(100);
         parkingLot.setReservedSpaces(50);
 
         Reservation reservation = new Reservation();
-        reservation.setId(1L);
         reservation.setParkingLot(parkingLot);
 
-        when(reservationRepository.findById(1L)).thenReturn(Optional.of(reservation));
-        when(parkingLotRepository.save(parkingLot)).thenReturn(parkingLot);
+        when(reservationRepository.findByUser_UsernameAndParkingLot_Id(username, parkingLotId))
+                .thenReturn(Optional.of(reservation));
 
-        reservationService.cancelReservation(1L);
+        boolean result = reservationService.cancelReservation(username, parkingLotId);
 
+        assertTrue(result);
         assertEquals(49, parkingLot.getReservedSpaces());
         verify(parkingLotRepository, times(1)).save(parkingLot);
         verify(reservationRepository, times(1)).delete(reservation);
     }
 
+    @Test
+    public void testCancelReservationFailsIfNotFound() {
+        when(reservationRepository.findByUser_UsernameAndParkingLot_Id(username, parkingLotId))
+                .thenReturn(Optional.empty());
+
+        boolean result = reservationService.cancelReservation(username, parkingLotId);
+
+        assertFalse(result);
+        verify(reservationRepository, times(1)).findByUser_UsernameAndParkingLot_Id(username, parkingLotId);
+        verifyNoMoreInteractions(reservationRepository);
+    }
+
+    @Test
+    public void testDeleteReservation() {
+        doNothing().when(reservationRepository).deleteById(1L);
+
+        reservationService.deleteReservation(1L);
+
+        verify(reservationRepository, times(1)).deleteById(1L);
+    }
+
+    @Configuration
+    static class TestConfig {
+        @Bean
+        public ReservationService reservationService(ReservationRepository reservationRepository, ParkingLotRepository parkingLotRepository) {
+            return new ReservationService(reservationRepository, parkingLotRepository);
+        }
+
+        @Bean
+        public ReservationRepository reservationRepository() {
+            return mock(ReservationRepository.class);
+        }
+
+        @Bean
+        public ParkingLotRepository parkingLotRepository() {
+            return mock(ParkingLotRepository.class);
+        }
+    }
 }

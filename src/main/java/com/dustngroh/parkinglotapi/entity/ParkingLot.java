@@ -1,5 +1,7 @@
 package com.dustngroh.parkinglotapi.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import java.util.List;
 import java.util.Set;
@@ -24,6 +26,7 @@ public class ParkingLot {
     private int reservedSpaces;
 
     @OneToMany(mappedBy = "parkingLot", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
     private List<Reservation> reservations;
 
     @ManyToMany

@@ -1,5 +1,6 @@
 package com.dustngroh.parkinglotapi.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -16,6 +17,7 @@ public class Reservation {
 
     @ManyToOne
     @JoinColumn(name = "parking_lot_id", nullable = false)
+    @JsonBackReference
     private ParkingLot parkingLot;
 
     // Getters and Setters

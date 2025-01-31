@@ -25,6 +25,10 @@ public class ParkingLotService {
         return parkingLotRepository.findByName(name);
     }
 
+    public Optional<ParkingLot> getParkingLotById(Long id) {
+        return parkingLotRepository.findById(id);
+    }
+
     public ParkingLot saveParkingLot(ParkingLot parkingLot) {
         return parkingLotRepository.save(parkingLot);
     }
