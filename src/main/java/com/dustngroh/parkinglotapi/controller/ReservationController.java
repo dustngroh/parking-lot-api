@@ -11,6 +11,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/reservations")
@@ -26,112 +28,128 @@ public class ReservationController {
         this.jwtUtil = jwtUtil;
     }
 
+    /**
+     * Get all reservations (Admin Use)
+     */
     @GetMapping
-    public List<Reservation> getAllReservations() {
-        return reservationService.getAllReservations();
+    public ResponseEntity<List<Reservation>> getAllReservations() {
+        return ResponseEntity.ok(reservationService.getAllReservations());
     }
 
+    /**
+     * Get reservations for the logged-in user
+     */
     @GetMapping("/user")
-    public ResponseEntity<List<Reservation>> getReservationsByUser(
+    public ResponseEntity<?> getReservationsByUser(
             @CookieValue(name = "jwtToken", required = false) String token
     ) {
         if (token == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Unauthorized"));
         }
 
         try {
             String username = jwtUtil.getUsernameFromToken(token);
             if (username == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Unauthorized"));
             }
 
             List<Reservation> reservations = reservationService.getReservationsByUser(username);
             return ResponseEntity.ok(reservations);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", e.getMessage()));
         }
     }
 
+    /**
+     * Check if the logged-in user has a reservation in a parking lot
+     */
     @GetMapping("/exists")
-    public ResponseEntity<Boolean> hasReservation(
+    public ResponseEntity<Map<String, Boolean>> hasReservation(
             @RequestParam Long parkingLotId,
             @CookieValue(name = "jwtToken", required = false) String token
     ) {
         if (token == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(false);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("hasReservation", false));
         }
 
         try {
             String username = jwtUtil.getUsernameFromToken(token);
             if (username == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(false);
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("hasReservation", false));
             }
 
             boolean exists = reservationService.hasReservation(username, parkingLotId);
-            return ResponseEntity.ok(exists);
+            return ResponseEntity.ok(Map.of("hasReservation", exists));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(false);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("hasReservation", false));
         }
     }
 
+    /**
+     * Create a new reservation
+     */
     @PostMapping
-    public ResponseEntity<Reservation> createReservation(
+    public ResponseEntity<?> createReservation(
             @RequestParam Long parkingLotId,
             @CookieValue(name = "jwtToken", required = false) String token
     ) {
         if (token == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Unauthorized"));
         }
 
         try {
             String username = jwtUtil.getUsernameFromToken(token);
             if (username == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Unauthorized"));
             }
 
-            // Get the user entity
-            User user = userService.getUserByUsername(username).orElse(null);
-            if (user == null) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            Optional<User> userOpt = userService.getUserByUsername(username);
+            if (userOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "User not found"));
             }
 
-            // Create the reservation
-            Reservation newReservation = reservationService.createReservation(user, parkingLotId);
+            Reservation newReservation = reservationService.createReservation(userOpt.get(), parkingLotId);
             return ResponseEntity.status(HttpStatus.CREATED).body(newReservation);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", e.getMessage()));
         }
     }
 
+    /**
+     * Cancel a reservation
+     */
     @DeleteMapping("/cancel")
-    public ResponseEntity<String> cancelReservation(
+    public ResponseEntity<Map<String, String>> cancelReservation(
             @RequestParam Long parkingLotId,
             @CookieValue(name = "jwtToken", required = false) String token
     ) {
         if (token == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Unauthorized"));
         }
 
         try {
             String username = jwtUtil.getUsernameFromToken(token);
             if (username == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Unauthorized"));
             }
 
             boolean canceled = reservationService.cancelReservation(username, parkingLotId);
-            if (canceled) {
-                return ResponseEntity.ok("Reservation cancelled successfully.");
-            } else {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("No reservation found to cancel.");
+            if (!canceled) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "No reservation found to cancel."));
             }
+
+            return ResponseEntity.ok(Map.of("message", "Reservation cancelled successfully."));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", e.getMessage()));
         }
     }
 
+    /**
+     * Delete a reservation by ID (Admin Use)
+     */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteReservation(@PathVariable Long id) {
+    public ResponseEntity<Map<String, String>> deleteReservation(@PathVariable Long id) {
         reservationService.deleteReservation(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(Map.of("message", "Reservation deleted successfully."));
     }
 }
