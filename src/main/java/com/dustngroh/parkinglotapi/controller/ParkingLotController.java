@@ -55,6 +55,7 @@ public class ParkingLotController {
         return ResponseEntity.ok(createdParkingLot);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteParkingLot(@PathVariable Long id) {
         parkingLotService.deleteParkingLot(id);
