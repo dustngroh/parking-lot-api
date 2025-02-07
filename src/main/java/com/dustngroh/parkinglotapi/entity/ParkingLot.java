@@ -35,6 +35,7 @@ public class ParkingLot {
             joinColumns = @JoinColumn(name = "parkinglot_id"),
             inverseJoinColumns = @JoinColumn(name = "user_id")
     )
+    @JsonManagedReference
     private Set<User> staff;
 
     // Getters and Setters

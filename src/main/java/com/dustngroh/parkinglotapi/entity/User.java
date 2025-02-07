@@ -1,5 +1,7 @@
 package com.dustngroh.parkinglotapi.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.util.List;
 import java.util.Set;
@@ -15,6 +17,7 @@ public class User {
     @Column(nullable = false, unique = true)
     private String username;
 
+    @JsonIgnore
     @Column(nullable = false)
     private String password;
 
@@ -34,6 +37,7 @@ public class User {
     private List<Reservation> reservations;
 
     @ManyToMany(mappedBy = "staff")
+    @JsonBackReference
     private Set<ParkingLot> parkingLots; // Parking lots where the user works as staff
 
     // Getters and Setters

@@ -60,6 +60,26 @@ public class ReservationController {
         }
     }
 
+    @GetMapping("/parkinglot/{parkingLotId}")
+    public ResponseEntity<List<Reservation>> getReservationsByParkingLot(
+            @PathVariable Long parkingLotId,
+            @CookieValue(name = "jwtToken", required = false) String token
+    ) {
+        if (token == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
+        }
+
+        String username = jwtUtil.getUsernameFromToken(token);
+        Optional<User> userOpt = userService.getUserByUsername(username);
+
+        if (userOpt.isEmpty() || !userOpt.get().getRole().equals("ADMIN")) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
+        }
+
+        List<Reservation> reservations = reservationService.getReservationsByParkingLotId(parkingLotId);
+        return ResponseEntity.ok(reservations);
+    }
+
     /**
      * Check if the logged-in user has a reservation in a parking lot
      */
@@ -145,7 +165,7 @@ public class ReservationController {
     }
 
     /**
-     * Delete a reservation by ID (Admin Use)
+     * Delete a reservation by ID
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, String>> deleteReservation(@PathVariable Long id) {

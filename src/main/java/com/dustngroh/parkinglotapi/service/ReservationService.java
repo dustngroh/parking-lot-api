@@ -33,6 +33,10 @@ public class ReservationService {
         return reservationRepository.findByUser_Username(username);
     }
 
+    public List<Reservation> getReservationsByParkingLotId(Long parkingLotId) {
+        return reservationRepository.findByParkingLot_Id(parkingLotId);
+    }
+
     public boolean hasReservation(String username, Long parkingLotId) {
         return reservationRepository.findByUser_UsernameAndParkingLot_Id(username, parkingLotId).isPresent();
     }
