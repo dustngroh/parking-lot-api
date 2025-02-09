@@ -165,6 +165,21 @@ public class ReservationController {
     }
 
     /**
+     * Confirm a reservation by ID
+     * Deletes the reservation without changing reserved spaces of the associated parking lot
+     */
+    @DeleteMapping("/{id}/confirm")
+    public ResponseEntity<Map<String, String>> confirmReservation(@PathVariable Long id) {
+        boolean confirmed = reservationService.confirmReservation(id);
+
+        if (!confirmed) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "Reservation not found."));
+        }
+
+        return ResponseEntity.ok(Map.of("message", "Reservation confirmed successfully."));
+    }
+
+    /**
      * Delete a reservation by ID
      */
     @DeleteMapping("/{id}")

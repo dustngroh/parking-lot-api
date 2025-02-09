@@ -69,6 +69,7 @@ public class ReservationService {
         return reservationRepository.save(reservation);
     }
 
+    // Deletes the Reservation and decrements reserved spaces of the lot
     @Transactional
     public boolean cancelReservation(String username, Long parkingLotId) {
         // Find the user's reservation
@@ -90,6 +91,18 @@ public class ReservationService {
         // Delete the reservation
         reservationRepository.delete(reservation);
         return true;
+    }
+
+    // Deletes the Reservation without changing reserved spaces of the lot
+    public boolean confirmReservation(Long reservationId) {
+        Optional<Reservation> reservationOpt = reservationRepository.findById(reservationId);
+
+        if (reservationOpt.isPresent()) {
+            reservationRepository.deleteById(reservationId);
+            return true;
+        }
+
+        return false;
     }
 
     public void deleteReservation(Long id) {
