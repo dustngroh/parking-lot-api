@@ -28,12 +28,7 @@ public class ParkingLotController {
                 .toList();
         return ResponseEntity.ok(lots);
     }
-
-//    @GetMapping
-//    public List<ParkingLot> getAllParkingLots() {
-//        return parkingLotService.getAllParkingLots();
-//    }
-
+    
 //    @GetMapping("/{name}")
 //    public ResponseEntity<ParkingLot> getParkingLotByName(@PathVariable String name) {
 //        return parkingLotService.getParkingLotByName(name)
@@ -62,6 +57,7 @@ public class ParkingLotController {
         return ResponseEntity.noContent().build();
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{id}/increment-reserved")
     public ResponseEntity<ParkingLot> incrementReservedSpaces(@PathVariable Long id) {
         try {
@@ -72,6 +68,7 @@ public class ParkingLotController {
         }
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{id}/decrement-reserved")
     public ResponseEntity<ParkingLot> decrementReservedSpaces(@PathVariable Long id) {
         try {
