@@ -28,13 +28,6 @@ public class ParkingLotController {
                 .toList();
         return ResponseEntity.ok(lots);
     }
-    
-//    @GetMapping("/{name}")
-//    public ResponseEntity<ParkingLot> getParkingLotByName(@PathVariable String name) {
-//        return parkingLotService.getParkingLotByName(name)
-//                .map(ResponseEntity::ok)
-//                .orElse(ResponseEntity.notFound().build());
-//    }
 
     @GetMapping("/{id}")
     public ResponseEntity<ParkingLot> getParkingLotById(@PathVariable Long id) {
