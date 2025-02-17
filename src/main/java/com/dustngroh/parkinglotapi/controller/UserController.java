@@ -57,9 +57,6 @@ public class UserController {
             // Generate JWT token
             String token = jwtUtil.generateToken(user);
 
-            // Respond with the token as JSON
-            //return ResponseEntity.ok(Collections.singletonMap("token", token));
-
             // Set the JWT as an HttpOnly cookie
             Cookie jwtCookie = new Cookie("jwtToken", token);
             jwtCookie.setHttpOnly(true);
